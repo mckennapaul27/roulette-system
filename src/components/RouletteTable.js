@@ -2,8 +2,11 @@ import React, { Component } from 'react';
 import takeRight from 'lodash.takeright';
 import uniq from 'lodash.uniq';
 import chip from '../chip.svg'
-export default class RouletteTable extends Component {
+import { ToastContainer, toast } from 'react-toastify';
+import '../../node_modules/react-toastify/dist/ReactToastify.css';
 
+
+export default class RouletteTable extends Component {
 
     state = {
         rolling37: [],
@@ -11,7 +14,7 @@ export default class RouletteTable extends Component {
         message: '',
         active: false
     }
-
+    
     addNumberToArray = (number) => {
         const { rolling37 } = this.state;
         const length = rolling37.length;
@@ -38,20 +41,17 @@ export default class RouletteTable extends Component {
                 if (lastTwo[0].status === 'U' && lastTwo[1].status === 'U') {
                     this.setState({
                         numbersTobet: this.state.rolling37.reduce((acc, n) => {
-                            if (n.status.includes('R')) acc.push(n.number)
+                            if (n.status.includes('R') || n.status === 'U') acc.push(n.number)
                             return acc;
                         }, []),
                         active: true
                     }, () => {
-                        const uniqNumbers = this.state.numbersTobet;
+                        const uniqNumbers = uniq(this.state.numbersTobet);
                         this.setState({
-                            message: 
-                                <div>
-                                    <p>There are <strong>two</strong> unique numbers in a row.</p>
-                                    <p>The <strong>repeating</strong> numbers in your rolling 37 to bet on are:</p>
-                                    <ul>{uniqNumbers.map((n, i) => <li key={i}>{n}</li>)}</ul>
-                                </div>,
+                            message: 'Bet',
                             numbersTobet: uniqNumbers
+                        }, () => {
+                            toast.success(<p>{this.state.message}</p>)
                         })
                     })
                 } else this.setState({
@@ -75,11 +75,11 @@ export default class RouletteTable extends Component {
         }
     }
 
-    toggleActive = () => {
-        this.setState({
-            active: !this.state.active
-        })
-    }
+    // toggleActive = () => {
+    //     this.setState({
+    //         active: !this.state.active
+    //     })
+    // }
 
     render () {
 
@@ -137,7 +137,7 @@ export default class RouletteTable extends Component {
             <div className='hero is-dark is-bold'>
                 <div className='content'>
                     <hr/>
-                    <div className={`modal ${active ? 'is-active' : ''}`}>
+                    {/* <div className={`modal ${active ? 'is-active' : ''}`}>
                         <div className='modal-background'></div>
                         <div className='modal-content'>
                             <article className='message is-info'>
@@ -146,7 +146,7 @@ export default class RouletteTable extends Component {
                             </article>
                         </div>
                         <button className='modal-close is-large' onClick={this.toggleActive}></button>
-                    </div>
+                    </div> */}
                     <div className='columns'>
                         <div className='column is-8'>
                             <div className='columns is-centered is-gapless' style={columnStyle}>
@@ -302,6 +302,7 @@ export default class RouletteTable extends Component {
                     </div>
                 </div>
                 <hr/>
+                <ToastContainer position={'top-center'}/>
             </div>
             
             
