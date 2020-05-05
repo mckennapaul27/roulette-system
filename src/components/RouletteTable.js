@@ -47,7 +47,7 @@ export default class RouletteTable extends Component {
                         this.setState({
                             message: 
                                 <div>
-                                    <p>There are 2 unique numbers in a row.</p>
+                                    <p>There are <strong>two</strong> unique numbers in a row.</p>
                                     <p>The <strong>repeating</strong> numbers in your rolling 37 to bet on are:</p>
                                     <ul>{uniqNumbers.map((n, i) => <li key={i}>{n}</li>)}</ul>
                                 </div>,
