@@ -411,7 +411,7 @@ export default class RouletteTable extends Component {
                     </div>
                 </div>
                 <hr/>
-                <ToastContainer position={'top-center'} autoClose={false}/>
+                <ToastContainer position={'top-right'} autoClose={true}/>
             </div>
             
             
