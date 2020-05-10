@@ -1,7 +1,9 @@
 import React, { Component } from 'react';
 import takeRight from 'lodash.takeright';
 import uniq from 'lodash.uniq';
-import chip from '../chip.svg'
+import chip from '../chip.svg';
+import piece from '../piece.svg'
+
 import { ToastContainer, toast } from 'react-toastify';
 import '../../node_modules/react-toastify/dist/ReactToastify.css';
 
@@ -12,7 +14,136 @@ export default class RouletteTable extends Component {
         rolling37: [],
         numbersTobet: [],
         message: '',
-        active: false
+        active: false,
+        bet: false,
+        unit: null,
+        allTime: [],
+        balance: 0,
+        winningNumber: null,
+        stake: 0
+    }
+
+    addSeedNumber = (numberObj) => {
+        this.setState({
+            rolling37: this.state.rolling37.concat(numberObj).reduce((acc, n) => {
+                const frequency = acc.filter(a => a.number === n.number).length;
+                const status = frequency === 0 ? 'U' : `R${frequency}`;
+                const obj = {
+                    number: n.number,
+                    status: status
+                }
+                acc.push(obj)
+                return acc; 
+            }, [])
+        })
+    }
+
+    addExtraNumber = (numberObj) => {
+        this.setState({
+            rolling37: this.state.rolling37.concat(numberObj).slice(1).reduce((acc, n) => {
+                const frequency = acc.filter(a => a.number === n.number).length;
+                const status = frequency === 0 ? 'U' : `R${frequency}`;
+                const obj = {
+                    number: n.number,
+                    status: status
+                }
+                acc.push(obj)
+                return acc;
+            }, [])
+        }, () => {
+            const { rolling37 } = this.state;
+            const last5 = takeRight(rolling37, 5).reduce((acc, n) => {
+                acc.push(n.status)
+                return acc;
+            }, []).join('');
+            this.checkForBetTrigger(last5)
+        })
+    }
+
+    allAllNumbers = (numberObj) => {
+        this.setState({
+            allTime: this.state.allTime.concat(numberObj).reduce((acc, n) => {
+                const frequency = acc.filter(a => a.number === n.number).length;
+                const status = frequency === 0 ? 'U' : `R${frequency}`;
+                const obj = {
+                    number: n.number,
+                    status: status
+                }
+                acc.push(obj)
+                return acc; 
+            }, [])
+        })
+    }
+
+    setTableChips = () => {
+        this.setState({
+            numbersTobet: uniq(this.state.rolling37.reduce((acc, n) => {
+                if (n.status.includes('R') || n.status === 'U') acc.push(n.number)
+                return acc;
+            }, [])),
+            message: 'Bet'
+        }, () => {
+            toast.success(<p>{this.state.message} {this.state.unit} units</p>)
+            const { numbersTobet, unit } = this.state;
+            this.setState({
+                stake: unit * numbersTobet.length
+            })
+
+        })
+    }
+
+    checkForBetTrigger = (last5) => {
+        console.log('called!!')
+        console.log(last5)
+        console.log('1', /(U|(R\d\d?)){3}U{2}/g.test(last5))
+        console.log('2', /(U|(R\d\d?)){2}U{3}/g.test(last5))
+        console.log('3', /(U|(R\d\d?)){3}U{2}/g.test(last5))
+        console.log('4', /(U|(R\d\d?)){2}(R\d\d?){1}U{2}/g.test(last5))
+        console.log('5', /(U|(R\d\d?)){1}(R\d\d?){1}U{3}/g.test(last5))
+        const length = this.state.allTime.length;
+        console.log(length)
+        if (length === 38) { // If length  === 38 then this means it is the first number after initial 37 so doesn't matter about previous numbers
+            if (/(U|(R\d\d?)){3}U{2}/g.test(last5)) {
+                this.setState({
+                    bet: true,
+                    unit: 1,
+                    
+                }, this.setTableChips)
+            }
+        }
+        else if (length === 39) { // if length is 39, this is 2 numbers after 37 so we can use U|R U|R U U U or U|R U|R U|R U U 
+            if (/(U|(R\d\d?)){2}U{3}/g.test(last5)) {
+                this.setState({
+                    bet: true,
+                    unit: 3
+                }, this.setTableChips)
+            } else if (/(U|(R\d\d?)){3}U{2}/g.test(last5)) {
+                this.setState({
+                    bet: true,
+                    unit: 1
+                }, this.setTableChips)
+            }
+        }
+        else {
+            if (/(U|(R\d\d?)){2}(R\d\d?){1}U{2}/g.test(last5)) {
+                this.setState({
+                    bet: true,
+                    unit: 1
+                }, this.setTableChips)
+            } else if (/(U|(R\d\d?)){1}(R\d\d?){1}U{3}/g.test(last5)) {
+                this.setState({
+                    bet: true,
+                    unit: 3
+                }, this.setTableChips)
+            } else {
+                this.setState({
+                    bet: false,
+                    unit: null,
+                    message: '',
+                    numbersTobet: []
+                })
+            }
+        }
     }
     
     addNumberToArray = (number) => {
@@ -22,65 +153,39 @@ export default class RouletteTable extends Component {
             number: number,
             status: ''
         }
-        
-        if (length > 36) {
+        this.setState({ 
+            winningNumber: number,
+            numbersTobet: [],
+            stake: 0 
+        })
+        if (length > 36) this.addExtraNumber(numberObj);
+        else this.addSeedNumber(numberObj)
+        this.allAllNumbers(numberObj)
+    }
+
+    placeBet = () => {
+        const n = () => Math.floor(Math.random() * Math.floor(37));
+        const number = n();
+        const { numbersTobet, stake, unit } = this.state;
+        if (numbersTobet.includes(number)) {
+            const diff = (0 - stake) + (unit * 36) 
             this.setState({
-                rolling37: this.state.rolling37.concat(numberObj).slice(1).reduce((acc, n) => {
-                    const frequency = acc.filter(a => a.number === n.number).length;
-                    const status = frequency === 0 ? 'U' : `R${frequency}`;
-                    const obj = {
-                        number: n.number,
-                        status: status
-                    }
-                    acc.push(obj)
-                    return acc;
-                }, [])
+                balance: this.state.balance + diff
             }, () => {
-                const { rolling37 } = this.state;
-                const lastTwo = takeRight(rolling37, 2);
-                if (lastTwo[0].status === 'U' && lastTwo[1].status === 'U') {
-                    this.setState({
-                        numbersTobet: this.state.rolling37.reduce((acc, n) => {
-                            if (n.status.includes('R') || n.status === 'U') acc.push(n.number)
-                            return acc;
-                        }, []),
-                        active: true
-                    }, () => {
-                        const uniqNumbers = uniq(this.state.numbersTobet);
-                        this.setState({
-                            message: 'Bet',
-                            numbersTobet: uniqNumbers
-                        }, () => {
-                            toast.success(<p>{this.state.message}</p>)
-                        })
-                    })
-                } else this.setState({
-                    message: '',
-                    numbersTobet: []
-                })
+                toast.success(`Result: ${number}! You won +(£${diff})`);
+                this.addNumberToArray(number);
             })
         } else {
-            this.setState({
-                rolling37: this.state.rolling37.concat(numberObj).reduce((acc, n) => {
-                    const frequency = acc.filter(a => a.number === n.number).length;
-                    const status = frequency === 0 ? 'U' : `R${frequency}`;
-                    const obj = {
-                        number: n.number,
-                        status: status
-                    }
-                    acc.push(obj)
-                    return acc; 
-                }, [])
+            const diff = 0 - stake;
+            this.setState({ 
+                balance: this.state.balance + diff,
+            }, () => {
+                toast.warn(`Result: ${number}! You lost -(£${diff})`);
+                this.addNumberToArray(number);
             })
         }
     }
-
-    // toggleActive = () => {
-    //     this.setState({
-    //         active: !this.state.active
-    //     })
-    // }
-
+   
     render () {
 
         const column1 = [3, 6, 9, 12, 2, 5, 8, 11, 1, 4, 7, 10];
@@ -88,7 +193,7 @@ export default class RouletteTable extends Component {
         const column3 = [27, 30, 33, 36, 26, 29, 32, 35, 25, 28, 31, 34]
         const reds = [1, 3, 5, 7, 9, 12, 14, 16, 18, 19, 21, 23, 25, 27, 30, 32, 34, 36];
 
-        const { rolling37, numbersTobet, message, active } = this.state;
+        const { rolling37, numbersTobet, bet, winningNumber, stake, balance } = this.state;
 
         const boxStyle = {
             height: '75px',
@@ -126,27 +231,12 @@ export default class RouletteTable extends Component {
             margin: 0
         }
 
-        // <div className='card-image' style={{ position: 'relative' }}>
-        //     <figure className='image is-square'>
-        //         <img src='' alt='BestPayBD Profile' />
-        //     </figure>
-        //     <img src='/images/stamp-white.png' style={{ maxWidth: '100px', position: 'absolute', top: '10px', right: '10px' }} />
-        // </div>
+        const disabled = bet ? false : true;
 
         return (
             <div className='hero is-dark is-bold'>
-                <div className='content'>
+                <div className='content' >
                     <hr/>
-                    {/* <div className={`modal ${active ? 'is-active' : ''}`}>
-                        <div className='modal-background'></div>
-                        <div className='modal-content'>
-                            <article className='message is-info'>
-                                <div className='message-header'>Information</div>
-                                <div className='message-body'>{message}</div>
-                            </article>
-                        </div>
-                        <button className='modal-close is-large' onClick={this.toggleActive}></button>
-                    </div> */}
                     <div className='columns'>
                         <div className='column is-8'>
                             <div className='columns is-centered is-gapless' style={columnStyle}>
@@ -161,6 +251,8 @@ export default class RouletteTable extends Component {
                                        
                                         onClick={() => this.addNumberToArray(0)}>
                                         <p style={numberStyle}>0</p>
+                                        {numbersTobet.includes(0) && <img src={chip} style={{ maxWidth: '30px', position: 'absolute', top: '30px', right: '10px' }} />}
+                                        {0 === winningNumber && <img src={piece} style={{ maxWidth: '30px', position: 'absolute', top: '20px', right: '15px' }} />}
                                     </a>
                                 </div>
                                 <div className='column is-3'>
@@ -171,6 +263,7 @@ export default class RouletteTable extends Component {
                                                 onClick={() => this.addNumberToArray(no)}>
                                                     <p style={numberStyle}>{no}</p>
                                                     {numbersTobet.includes(no) && <img src={chip} style={{ maxWidth: '30px', position: 'absolute', top: '30px', right: '10px' }} />}
+                                                    {no === winningNumber && <img src={piece} style={{ maxWidth: '30px', position: 'absolute', top: '20px', right: '15px' }} />}
                                                 </a>
                                             </div>
                                         })}
@@ -184,6 +277,7 @@ export default class RouletteTable extends Component {
                                                 onClick={() => this.addNumberToArray(no)}>
                                                     <p style={numberStyle}>{no}</p>
                                                     {numbersTobet.includes(no) && <img src={chip} style={{ maxWidth: '30px', position: 'absolute', top: '30px', right: '10px' }} />}
+                                                    {no === winningNumber && <img src={piece} style={{ maxWidth: '30px', position: 'absolute', top: '30px', right: '10px' }} />}
                                                 </a>
                                             </div>
                                         })}
@@ -197,6 +291,7 @@ export default class RouletteTable extends Component {
                                                 onClick={() => this.addNumberToArray(no)}>
                                                     <p style={numberStyle}>{no}</p>
                                                     {numbersTobet.includes(no) && <img src={chip} style={{ maxWidth: '30px', position: 'absolute', top: '30px', right: '10px' }} />}
+                                                    {no === winningNumber && <img src={piece} style={{ maxWidth: '30px', position: 'absolute', top: '30px', right: '10px' }} />}
                                                 </a>
                                             </div>
                                         })}
@@ -283,7 +378,14 @@ export default class RouletteTable extends Component {
                                         </div>
                                     </div>
                                 </div>
-                                
+                            </div>
+                            <div className='columns is-centered'>
+                                <div className='column is-one-fifth'>
+                                    <p>Stake: <strong style={{ color: '#FFF' }}>£{stake}</strong></p>
+                                </div>
+                                <div className='column is-two-fifths'>
+                                    <button className='button is-large is-link' disabled={disabled} onClick={this.placeBet}>PLACE BET</button>
+                                </div>
                             </div>
                         </div>
                         <div className='column is-3'>
@@ -300,9 +402,16 @@ export default class RouletteTable extends Component {
                             </div>
                         </div>
                     </div>
+                    <hr/>
+                    <div className='columns'>
+                        <div className='column is-offset-1'>
+                            <h3 style={{ color: '#FFF' }}>Balance: £{balance}</h3>
+
+                        </div>
+                    </div>
                 </div>
                 <hr/>
-                <ToastContainer position={'top-center'}/>
+                <ToastContainer position={'top-center'} autoClose={false}/>
             </div>
             
             
