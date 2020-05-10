@@ -88,7 +88,6 @@ export default class RouletteTable extends Component {
             this.setState({
                 stake: unit * numbersTobet.length
             })
-
         })
     }
 
@@ -147,7 +146,7 @@ export default class RouletteTable extends Component {
     }
     
     addNumberToArray = (number) => {
-        const { rolling37 } = this.state;
+        const { rolling37, bet } = this.state;
         const length = rolling37.length;
         const numberObj = {
             number: number,
@@ -158,14 +157,14 @@ export default class RouletteTable extends Component {
             numbersTobet: [],
             stake: 0 
         })
-        if (length > 36) this.addExtraNumber(numberObj);
+        if (bet) this.placeBet(number)
+        else if (length > 36 && !bet) this.addExtraNumber(numberObj);
         else this.addSeedNumber(numberObj)
         this.allAllNumbers(numberObj)
     }
 
-    placeBet = () => {
-        const n = () => Math.floor(Math.random() * Math.floor(37));
-        const number = n();
+    placeBet = (number) => {
+        
         const { numbersTobet, stake, unit } = this.state;
         if (numbersTobet.includes(number)) {
             const diff = (0 - stake) + (unit * 36) 
@@ -173,7 +172,11 @@ export default class RouletteTable extends Component {
                 balance: this.state.balance + diff
             }, () => {
                 toast.success(`Result: ${number}! You won +(£${diff})`);
-                this.addNumberToArray(number);
+                this.setState({
+                    bet: false
+                }, () => {
+                    this.addNumberToArray(number);
+                })
             })
         } else {
             const diff = 0 - stake;
@@ -181,7 +184,11 @@ export default class RouletteTable extends Component {
                 balance: this.state.balance + diff,
             }, () => {
                 toast.warn(`Result: ${number}! You lost -(£${diff})`);
-                this.addNumberToArray(number);
+                this.setState({
+                    bet: false
+                }, () => {
+                    this.addNumberToArray(number);
+                })
             })
         }
     }
@@ -380,12 +387,12 @@ export default class RouletteTable extends Component {
                                 </div>
                             </div>
                             <div className='columns is-centered'>
-                                <div className='column is-one-fifth'>
+                                <div className='column is-two-fifths'>
                                     <p>Stake: <strong style={{ color: '#FFF' }}>£{stake}</strong></p>
                                 </div>
-                                <div className='column is-two-fifths'>
+                                {/* <div className='column is-two-fifths'>
                                     <button className='button is-large is-link' disabled={disabled} onClick={this.placeBet}>PLACE BET</button>
-                                </div>
+                                </div> */}
                             </div>
                         </div>
                         <div className='column is-3'>
@@ -411,7 +418,7 @@ export default class RouletteTable extends Component {
                     </div>
                 </div>
                 <hr/>
-                <ToastContainer position={'top-right'} autoClose={false}/>
+                <ToastContainer position={'top-right'} autoClose={5000}/>
             </div>
             
             
